@@ -6,26 +6,38 @@ const cloudinary = require('cloudinary')
 const crypto = require('crypto')
 
 //register user
-exports.registerUser = async(req, res, next) => {
-    const result = await cloudinary.v2.uploader.upload(req.body.avatar, {
-        folder: 'avatars',
-        width: 150,
-        crop: 'scale'
-    })
-    const { name, email, password }= req.body;
-    
-    const user = await User.create({
-        name,
-        email,
-        password,
-        avatar:{
-            public_id: result.public_id,
-            url: result.secure_url
-        }
-    })
+// Register user
+exports.registerUser = async (req, res, next) => {
+    try {
+        const { name, email, password, avatar} = req.body;
 
-    sendToken(user, 200, res)
-}
+        // Upload avatar na Cloudinary
+        const result = await cloudinary.v2.uploader.upload(avatar, {
+            folder: 'avatars',
+            width: 150,
+            crop: 'scale'
+        });
+
+        // Kreiraj korisnika
+        const user = await User.create({
+            name,
+            email,
+            password,
+            avatar: {
+                public_id: result.public_id,
+                url: result.secure_url
+            },
+            
+        });
+
+        // Pošalji token
+        sendToken(user, 200, res);
+    } catch (error) {
+        console.error('Greška prilikom registracije korisnika:', error);
+        res.status(500).json({ message: 'Greška prilikom registracije korisnika.', error: error.message });
+    }
+};
+
 
 //Login user
 exports.loginUser = async(req, res, next) =>{
@@ -143,35 +155,36 @@ exports.getUserProfile = async (req, res, next) => {
 
 //Update password => /api/password/update
 exports.updatePassword = async (req, res, next) => {
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.body.id).select('+password');
 
+    console.log("useeer", user)
     // Check previus user password 
     const isMatched = await user.comparePassword(req.body.oldPassword);
     if(!isMatched){
         return next('Old password is incorect.')
     }
-
     user.password = req.body.password;
     await user.save();
 
     sendToken(user, 200, res);
-
 }
 
 // User profile update => /api/me/update
 exports.updateProfile = async (req, res, next) => {
     try {
         console.log("Request body:", JSON.stringify(req.body, null, 2));
-        console.log("Updating user profile for user ID:", req.user.id);
+        console.log("Updating user profile for user ID:", req.body.user);
 
         const newUserData = {
             name: req.body.name,
-            email: req.body.email
+            email: req.body.email,
+            user: req.body.user
+
         };
 
         // Update avatar if a new one is provided
         if (req.body.avatar !== '') {
-            const user = await User.findById(req.user.id);
+            const user = await User.findById(req.body.user);
             const image_id = user.avatar.public_id;
             await cloudinary.v2.uploader.destroy(image_id);
 
@@ -188,7 +201,7 @@ exports.updateProfile = async (req, res, next) => {
         }
 
         // Update user profile in the database
-        const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+        const user = await User.findByIdAndUpdate(req.body.user, newUserData, {
             new: true,
             runValidators: true,
             useFindAndModify: false
@@ -205,7 +218,7 @@ exports.updateProfile = async (req, res, next) => {
     }
 
 // Update Avatar
-    const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+    const user = await User.findByIdAndUpdate(req.body.user, newUserData, {
         new: true,
         runValidators: true, 
         useFindAndModify: false

@@ -5,7 +5,12 @@ const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 
-app.use(cors());
+//app.use(cors());
+// CORS konfiguracija
+app.use(cors({
+    origin: 'http://localhost:3000', // Adresa tvog frontenda
+    credentials: true // Omogući slanje i primanje kolačića
+}));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(cookieParser());

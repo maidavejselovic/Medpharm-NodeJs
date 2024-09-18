@@ -1,7 +1,6 @@
 const Order = require('../models/order');
 const Product = require('../models/product');
 
-
 exports.newOrder = async(req, res, next) => {
     const {
         orderItems,
@@ -10,7 +9,8 @@ exports.newOrder = async(req, res, next) => {
         taxPrice,
         shippingPrice,
         totalPrice,
-        paymentInfo
+        paymentInfo,
+        user
     } = req.body;
 
     const order = await Order.create({
@@ -22,7 +22,7 @@ exports.newOrder = async(req, res, next) => {
         totalPrice,
         paymentInfo,
         paidAt: Date.now(),
-        user: req.user.id
+        user
     })
 
     res.status(200).json({
@@ -45,7 +45,7 @@ exports.getSingleOrder = async(req, res, next) => {
     })
 }
 
-//Get logedin users orders => /api/order/me
+//Get loggedin users orders => /api/order/me
 exports.myOrders = async(req, res, next) => {
     const orders = await Order.find({ user: req.user.id });
 
