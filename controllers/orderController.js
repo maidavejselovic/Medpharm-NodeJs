@@ -47,7 +47,7 @@ exports.getSingleOrder = async(req, res, next) => {
 
 //Get loggedin users orders => /api/order/me
 exports.myOrders = async(req, res, next) => {
-    const orders = await Order.find({ user: req.user.id });
+    const orders = await Order.find({user: req.params.id });
 
     res.status(200).json({
         success:true, 

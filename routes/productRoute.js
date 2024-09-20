@@ -10,7 +10,7 @@ router.route('/products').get(getProducts);
 
 router.route('/product/:id').get(getSingleProduct);
 
-router.route('/product/new').post(isAuthenticatedUser, newProduct);
+router.route('/product/new').post(newProduct);
 
 router.route('/product/update/:id').put(updateProduct);
 

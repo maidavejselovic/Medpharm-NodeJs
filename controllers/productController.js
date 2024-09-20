@@ -1,24 +1,48 @@
 const Product = require('../models/product')
-
 const APIFeatures = require('../utils/apiFeatures')
+const cloudinary = require('cloudinary')
 
-//Create new product
+// Create new product   =>   /api/v1/admin/product/new
 exports.newProduct = async (req, res, next) => {
+    try {
+        const result = await cloudinary.v2.uploader.upload(req.body.image, {
+            folder: 'products',
+            width: 150,
+            crop: 'scale'
+        });
 
-    req.body.user = req.user.id;
-    
-    const product = await Product.create(req.body);
+        const { name, price, description, ratings, category, user } = req.body;
 
-    res.status(201).json({
-        success: true,
-        product 
-    })
-}
+        const product = await Product.create({
+            name,
+            price,
+            description,
+            ratings,
+            category,
+            user,
+            image: {
+                public_id: result.public_id,
+                url: result.secure_url
+            }
+        });
+
+        res.status(201).json({
+            success: true,
+            product
+        });
+    } catch (error) {
+        console.error('Greška pri dodavanju proizvoda:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 
 // Get all products
 exports.getProducts = async (req, res, next) => {
     try {
-        const resPerPage = 1;
+        const resPerPage = 6;
         const productCount = await Product.countDocuments();
 
         // Kreiraj novi query objekat za pretragu i filtriranje
@@ -72,29 +96,64 @@ exports.getSingleProduct = async (req, res, next) => {
 }
 
 
-//Upadate Product
+
+//Update product 
 exports.updateProduct = async (req, res, next) => {
+    try {
+        // Prvo pronalazimo proizvod po ID-u
+        let product = await Product.findById(req.params.id);
 
-    let product = Product.findById(req.params.id);
+        if (!product) {
+            return next(new ErrorHandler('Product not found', 404));
+        }
 
-    if(!product) {
-        return res.status(404).json({
-            success: false, 
-            message: 'Producct not found'
-        })
+        const newProductData = {
+            name: req.body.name,
+            price: req.body.price,
+            description: req.body.description,
+            category: req.body.category,
+            stock: req.body.stock,
+            seller: req.body.seller
+        };
+
+        // Provera da li postoji nova slika za proizvod
+        if (req.body.image !== '') {
+            // Ako proizvod već ima sliku, brišemo staru
+            if (product.images && product.images.length > 0) {
+                const image_id = product.images[0].public_id;
+                await cloudinary.v2.uploader.destroy(image_id);
+            }
+
+            // Dodavanje nove slike
+            const result = await cloudinary.v2.uploader.upload(req.body.image, {
+                folder: 'products',
+                width: 500,
+                crop: "scale"
+            });
+
+            newProductData.images = [{
+                public_id: result.public_id,
+                url: result.secure_url
+            }];
+        }
+
+        // Ažuriranje podataka proizvoda u bazi
+        product = await Product.findByIdAndUpdate(req.params.id, newProductData, {
+            new: true,
+            runValidators: true,
+            useFindAndModify: false
+        });
+
+        res.status(200).json({
+            success: true,
+            product
+        });
+
+    } catch (error) {
+        console.error("Error occurred in updateProduct:", error);
+        return next(error);
     }
-
-    product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true,
-        useFindAndModify: false
-    });
-
-    res.status(200).json({
-        success: true,
-        product
-    })
-}
+};
 
 //Delete Product 
 exports.deleteProduct = async (req, res, next) => {

@@ -21,7 +21,7 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    images: [
+    image: 
         {
             public_id:{
                 type: String,
@@ -31,17 +31,15 @@ const productSchema = new mongoose.Schema({
                 type: String,
                 required: true
             }
-        }
-    ],
+        },
     category: {
         
         type: String,
         required: [true, 'Please enter category for this product'],
         enum: {
             values: [
-                'Vegetables',
-                'Fruits',
-                'Grains'
+                'Lekovi',
+                'Kozmetika'
             ],
             message:'Please select correst category for products'
         }

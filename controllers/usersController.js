@@ -5,7 +5,6 @@ const cloudinary = require('cloudinary')
 
 const crypto = require('crypto')
 
-//register user
 // Register user
 exports.registerUser = async (req, res, next) => {
     try {
@@ -145,7 +144,7 @@ exports.resetPassword = async (req, res, next) => {
 
 //Get currently logged in user details
 exports.getUserProfile = async (req, res, next) => {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.params.id);
 
     res.status(200).json({
         success: true,
@@ -179,7 +178,6 @@ exports.updateProfile = async (req, res, next) => {
             name: req.body.name,
             email: req.body.email,
             user: req.body.user
-
         };
 
         // Update avatar if a new one is provided
@@ -206,7 +204,6 @@ exports.updateProfile = async (req, res, next) => {
             runValidators: true,
             useFindAndModify: false
         });
-
         res.status(200).json({
             success: true,
             user
@@ -216,17 +213,6 @@ exports.updateProfile = async (req, res, next) => {
         console.error("Error occurred in updateProfile:", error);
         return next(error);
     }
-
-// Update Avatar
-    const user = await User.findByIdAndUpdate(req.body.user, newUserData, {
-        new: true,
-        runValidators: true, 
-        useFindAndModify: false
-    })
-
-    res.status(200).json({
-        success: true
-    })
 }
 
 //Logout user  => /api/logout 

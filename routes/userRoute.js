@@ -14,14 +14,13 @@ router.route('/password/reset/:token').put(resetPassword);
 
 router.route('/logout').get(logout);
 
-router.route('/me').get(isAuthenticatedUser, getUserProfile);
+router.route('/me/:id').get(getUserProfile);
 router.route('/password/update').put(updatePassword);
-
 router.route('/me/update').put(updateProfile);
 
-router.route('/admin/users').get(isAuthenticatedUser, allUsers);
-router.route('/admin/user/:id').get(isAuthenticatedUser, getUserDetails);
-router.route('/admin/user/:id').put(isAuthenticatedUser, updateUser);
-router.route('/admin/user/:id').delete(isAuthenticatedUser, deleteUser);
+router.route('/admin/users').get( allUsers);
+router.route('/admin/user/:id').get(getUserDetails);
+router.route('/admin/user/:id').put(updateUser);
+router.route('/admin/user/:id').delete(deleteUser);
 
 module.exports = router;
