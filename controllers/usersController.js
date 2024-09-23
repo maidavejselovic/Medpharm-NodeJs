@@ -8,7 +8,7 @@ const crypto = require('crypto')
 // Register user
 exports.registerUser = async (req, res, next) => {
     try {
-        const { name, email, password, avatar} = req.body;
+        const { firstName, lastName, email, password, avatar, role} = req.body;
 
         // Upload avatar na Cloudinary
         const result = await cloudinary.v2.uploader.upload(avatar, {
@@ -19,13 +19,15 @@ exports.registerUser = async (req, res, next) => {
 
         // Kreiraj korisnika
         const user = await User.create({
-            name,
+            firstName,
+            lastName,
             email,
             password,
             avatar: {
                 public_id: result.public_id,
                 url: result.secure_url
             },
+            role
             
         });
 
@@ -175,7 +177,8 @@ exports.updateProfile = async (req, res, next) => {
         console.log("Updating user profile for user ID:", req.body.user);
 
         const newUserData = {
-            name: req.body.name,
+            firstName: req.body.firstName,
+            lastName: req.body.lastName,
             email: req.body.email,
             user: req.body.user
         };
@@ -257,7 +260,8 @@ exports.getUserDetails = async(req, res, next) => {
 // User profile update => /api/admin/user/:id
 exports.updateUser = async(req, res, next) => {
     const newUserData = {
-        name: req.body.name,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
         email: req.body.email,
         role: req.body.role
     };
