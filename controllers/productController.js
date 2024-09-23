@@ -11,7 +11,7 @@ exports.newProduct = async (req, res, next) => {
             crop: 'scale'
         });
 
-        const { name, price, description, ratings, category, user } = req.body;
+        const { name, price, description, ratings, stock, category, user } = req.body;
 
         const product = await Product.create({
             name,
@@ -19,6 +19,7 @@ exports.newProduct = async (req, res, next) => {
             description,
             ratings,
             category,
+            stock,
             user,
             image: {
                 public_id: result.public_id,
@@ -85,7 +86,7 @@ exports.getSingleProduct = async (req, res, next) => {
     if(!product) {
         return res.status(404).json({
             success: false, 
-            message: 'Producct not found'
+            message: 'Product not found'
         })
     }
 
