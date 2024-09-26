@@ -3,12 +3,12 @@ const sendToken = require('../utils/jwtToken')
 const sendEmail = require('../utils/sendEmail')
 const cloudinary = require('cloudinary')
 
-const crypto = require('crypto')
+const crypto = require('crypto');
 
 // Register user
 exports.registerUser = async (req, res, next) => {
     try {
-        const { firstName, lastName, email, password, avatar, role} = req.body;
+        const { firstName, lastName, email, password, avatar, role } = req.body;
 
         // Upload avatar na Cloudinary
         const result = await cloudinary.v2.uploader.upload(avatar, {
@@ -27,45 +27,162 @@ exports.registerUser = async (req, res, next) => {
                 public_id: result.public_id,
                 url: result.secure_url
             },
-            role
-            
+            role 
         });
 
-        // Pošalji token
-        sendToken(user, 200, res);
+        // Generiši verifikacioni token
+        const verificationToken = user.getEmailVerificationToken();
+        await user.save({ validateBeforeSave: false });
+
+        // Kreiraj URL za verifikaciju email-a
+        const verificationUrl = `${req.protocol}://${req.get('host')}/api/verifyemail/${verificationToken}`;
+
+        const message = `Dobrodošli ${user.firstName}, \n\nMolimo vas da potvrdite vašu email adresu klikom na sledeći link: \n\n${verificationUrl}\n\nAko niste vi kreirali ovaj nalog, ignorišite ovu poruku.`;
+
+        try {
+            // Pošalji verifikacioni email
+            await sendEmail({
+                email: user.email,
+                subject: 'Verifikacija email-a - Medpharm',
+                message
+            });
+
+            res.status(200).json({
+                success: true,
+                message: `Verifikacioni email je poslat na: ${user.email}`
+            });
+
+        } catch (error) {
+            user.emailVerificationToken = undefined;
+            user.emailVerificationExpire = undefined;
+
+            await user.save({ validateBeforeSave: false });
+
+            return next(error.message);
+        }
+
     } catch (error) {
         console.error('Greška prilikom registracije korisnika:', error);
         res.status(500).json({ message: 'Greška prilikom registracije korisnika.', error: error.message });
     }
 };
 
+// @route   GET /api/verifyemail/:token
+exports.verifyEmail = async (req, res, next) => {
+    // Dobavi hashed token
+    const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+    // Nađi korisnika sa ovim tokenom
+    const user = await User.findOne({
+        emailVerificationToken: verificationToken,
+        emailVerificationExpire: { $gt: Date.now() }
+    });
+
+    if (!user) {
+        return res.status(400).send(`
+            <h1>Neispravan ili istekao verifikacioni token.</h1>
+            <p>Pokušajte ponovo ili se registrujte.</p>
+        `);
+    }
+
+    // Verifikuj email
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpire = undefined;
+    await user.save();
+
+    // HTML poruka o uspehu
+res.status(200).send(`
+<html>
+    <head>
+        <style>
+            body {
+                font-family: 'Verdana', sans-serif;
+                background-color: white; 
+                color: #37474f; /* Tamno siva boja */
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+            .container {
+                background: #ffffff;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+                text-align: center;
+                max-width: 450px;
+                border: 2px solid #00796b;
+            }
+            h1 {
+                color: #00796b; 
+                margin-bottom: 15px;
+                font-size: 28px;
+            }
+            p {
+                font-size: 18px;
+                line-height: 1.6;
+                margin-bottom: 25px;
+            }
+            a {
+                color: #ffffff; /* Bele boje za tekst linka */
+                background-color: #00796b; 
+                text-decoration: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                transition: background-color 0.3s, transform 0.3s;
+                display: inline-block;
+                font-weight: bold; /* Podebljani tekst */
+            }
+            a:hover {
+                background-color: #004d40; 
+                transform: scale(1.05); 
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Email uspešno verifikovan!</h1>
+            <p>Hvala što ste potvrdili svoj email.</p>
+            <p><a href="http://localhost:3000/login">Kliknite ovde da se prijavite.</a></p>
+        </div>
+    </body>
+</html>
+`);
+
+};
 
 //Login user
-exports.loginUser = async(req, res, next) =>{
-    const {email, password} = req.body;
+//Login user
+exports.loginUser = async(req, res, next) => {
+    const { email, password } = req.body;
 
-    //check if email and password is entered by user
-    if(!email || !password){
-        return next('Please enter your email and password')
+    // Check if email and password are entered by user
+    if (!email || !password) {
+        return next('Molimo unesite vašu email adresu i lozinku');
     }
 
-    //finding user in database
-    const user = await User.findOne({email}).select('+password')
+    // Finding user in database
+    const user = await User.findOne({ email }).select('+password');
 
-    if(!user){
-        return next('Email or password is not valid');
-
+    if (!user) {
+        return next('Email ili lozinka nisu ispravni');
     }
-    //check if password is correct or not
+
+    // Check if email is verified
+    if (!user.isVerified) {
+        return next('Molimo vas da potvrdite vašu email adresu pre nego što se prijavite.');
+    }
+
+    // Check if password is correct
     const isPasswordMatched = await user.comparePassword(password);
-    
-    if(!isPasswordMatched){
-        return next('The code does not match')
 
+    if (!isPasswordMatched) {
+        return next('Lozinka nije ispravna');
     }
-    
-    sendToken(user, 200, res)
 
+    sendToken(user, 200, res);
 }
 
 
@@ -86,7 +203,7 @@ exports.forgotPassword = async (req, res, next) => {
     // Create reset passwprd url
     const resetUrl = `${req.protocol}://${req.get('host')}/api/password/reset/${resetToken}`;
 
-    const message = `Your password reset token is as follow: \n\n${resetUrl}\n\nIf pou have not requested this email, then ignore it.`
+    const message = `Your password reset token is as follow: \n\n${resetUrl}\n\nIf you have not requested this email, then ignore it.`
 
     try {
         

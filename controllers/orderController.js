@@ -77,7 +77,7 @@ exports.allOrders = async(req, res, next) => {
 exports.updateOrder = async(req, res, next) => {
     const order = await Order.findById(req.params.id);
 
-    if(order.orderStatus === 'Delivered'){
+    if(order.orderStatus === 'Dostavljeno'){
         return next('You have already delivered this order');
     }
 

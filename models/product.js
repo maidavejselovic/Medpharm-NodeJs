@@ -37,13 +37,11 @@ const productSchema = new mongoose.Schema({
             }
         },
     category: {
-        
         type: String,
         required: [true, 'Please enter category for this product'],
         enum: {
             values: [
-                'Lekovi',
-                'Kozmetika'
+                'Vitamini i minerali', 'Suplementi', 'Medicinski aparati', 'Bebi program', 'Kozmetika'
             ],
             message:'Please select correst category for products'
         }
