@@ -67,7 +67,7 @@ exports.registerUser = async (req, res, next) => {
     }
 };
 
-// @route   GET /api/verifyemail/:token
+// GET /api/verifyemail/:token
 exports.verifyEmail = async (req, res, next) => {
     // Dobavi hashed token
     const verificationToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
@@ -150,41 +150,39 @@ res.status(200).send(`
     </body>
 </html>
 `);
-
 };
 
-//Login user
-//Login user
-exports.loginUser = async(req, res, next) => {
+// Login user
+exports.loginUser = async (req, res, next) => {
     const { email, password } = req.body;
 
     // Check if email and password are entered by user
     if (!email || !password) {
-        return next('Molimo unesite vašu email adresu i lozinku');
+        return res.status(400).json({ message: 'Molimo unesite vašu email adresu i lozinku' });
     }
 
     // Finding user in database
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-        return next('Email ili lozinka nisu ispravni');
+        return res.status(400).json({ message: 'Email ili lozinka nisu ispravni' });
     }
 
     // Check if email is verified
     if (!user.isVerified) {
-        return next('Molimo vas da potvrdite vašu email adresu pre nego što se prijavite.');
+        return res.status(400).json({ message: 'Molimo vas da potvrdite vašu email adresu pre nego što se prijavite.' });
     }
 
     // Check if password is correct
     const isPasswordMatched = await user.comparePassword(password);
 
     if (!isPasswordMatched) {
-        return next('Lozinka nije ispravna');
+        return res.status(400).json({ message: 'Lozinka nije ispravna' });
     }
 
+    // Send token if everything is OK
     sendToken(user, 200, res);
-}
-
+};
 
 //Forgot password => /api/passwprd/forgot
 exports.forgotPassword = async (req, res, next) => {
