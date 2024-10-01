@@ -43,7 +43,7 @@ exports.newProduct = async (req, res, next) => {
 // Get all products
 exports.getProducts = async (req, res, next) => {
     try {
-        const resPerPage = 6;
+        const resPerPage = 20;
         const productCount = await Product.countDocuments();
 
         // Kreiraj novi query objekat za pretragu i filtriranje
