@@ -8,7 +8,8 @@ const bodyParser = require('body-parser');
 //app.use(cors());
 // CORS konfiguracija
 app.use(cors({
-    origin: 'http://localhost:3000', // Adresa tvog frontenda
+    //origin: 'http://localhost:3000', // Adresa tvog frontenda
+    origin: 'https://medpharm-react.onrender.com',
     credentials: true // Omogući slanje i primanje kolačića
 }));
 app.use(express.json());
